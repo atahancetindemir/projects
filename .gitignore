@@ -1,0 +1,48 @@
+# C & C++ Compiled object files, executables, and libraries
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.out
+*.a
+*.lib
+
+# C++ Build Directories
+build/
+bin/
+dist/
+x64/
+Debug/
+Release/
+
+# CMake Artifacts
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Python Generated Files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Python Virtual Environments
+venv/
+.venv/
+env/
+.env/
+
+# Python Distribution
+*.egg-info/
+.pytest_cache/
+
+# General IDE and Editor folders
+.DS_Store       
+Thumbs.db     
+.vscode/     
+.idea/       
+*.swp           
+*.log           
