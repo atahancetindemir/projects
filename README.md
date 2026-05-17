@@ -15,7 +15,6 @@ A curated collection of projects from personal interests and academic coursework
 - [Numerical Analysis](https://github.com/atahancetindemir/projects/tree/main/numerical-analysis)
 - [Optimization](https://github.com/atahancetindemir/projects/tree/main/optimization)
 - [Probabilitiy and Statistics](https://github.com/atahancetindemir/projects/tree/main/probability-statistics)
-- [Soft Computing](https://github.com/atahancetindemir/projects/tree/main/soft-computing)
 
 ## Project Categories
 
@@ -76,8 +75,3 @@ A curated collection of projects from personal interests and academic coursework
 - **Sequence Experiments**
 - **Probability Problems**
 - **Expected Lottery Probability**
-
-### Soft Computing
-
-- **Simulated Annealing**
-- **Genetic Algorithms**
