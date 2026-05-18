@@ -133,7 +133,7 @@ void sum_matrix(double matA[SIZE][SIZE], double matB[SIZE][SIZE], double matC[SI
     }
 }
 
-void substract_matrix(double matA[SIZE][SIZE], double matB[SIZE][SIZE], double matC[SIZE][SIZE]) {
+void subtract_matrix(double matA[SIZE][SIZE], double matB[SIZE][SIZE], double matC[SIZE][SIZE]) {
     for(unsigned int i=0; i<SIZE; i++) {
         for(unsigned int j=0; j<SIZE; j++) {
             matC[i][j] = matA[i][j] - matB[i][j];
@@ -156,7 +156,7 @@ int main() {
     display_matrix(matB);
     display_matrix(matC);
 
-    substract_matrix(matA, matB, matC);
+    subtract_matrix(matA, matB, matC);
 
     display_matrix(matC);
     

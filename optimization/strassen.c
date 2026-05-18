@@ -27,12 +27,21 @@ void set_element(int16_t* matrix, size_t row, size_t col, int16_t value, size_t 
 
 // Multiply two matrices using AVX2 intrinsics
 void mat_mul_vector(int16_t* A, int16_t* B, int16_t* C, size_t n) {
+    int16_t* B_T = (int16_t*)malloc(n * n * sizeof(int16_t));
+    if (!B_T) return;
+
+    for (size_t ii = 0; ii < n; ii++) {
+        for (size_t jj = 0; jj < n; jj++) {
+            B_T[jj * n + ii] = B[ii * n + jj];
+        }
+    }
+        
     for (size_t i = 0; i < n; i++) {
         for (size_t j = 0; j < n; j++) {
             __m256i sum = _mm256_setzero_si256();
             for (size_t k = 0; k < n; k += 16) {
                 __m256i a = _mm256_loadu_si256((__m256i*)&A[i * n + k]);
-                __m256i b = _mm256_loadu_si256((__m256i*)&B[k * n + j]);
+                __m256i b = _mm256_loadu_si256((__m256i*)&B_T[j * n + k]);
                 sum = _mm256_add_epi16(sum, _mm256_mullo_epi16(a, b));
             }
             int16_t temp[16];
@@ -44,6 +53,7 @@ void mat_mul_vector(int16_t* A, int16_t* B, int16_t* C, size_t n) {
             C[i * n + j] = final_sum;
         }
     }
+    free(B_T);
 }
 
 // Add two matrices
@@ -54,7 +64,7 @@ void mat_add(int16_t* A, int16_t* B, int16_t* C, size_t n) {
 }
 
 // Subtract two matrices
-void mat_substract(int16_t* A, int16_t* B, int16_t* C, size_t n) {
+void mat_subtract(int16_t* A, int16_t* B, int16_t* C, size_t n) {
     for (size_t i = 0; i < n * n; i++) {
         C[i] = A[i] - B[i];
     }
@@ -82,31 +92,33 @@ void mat_mul_strassen(int16_t* A, int16_t* B, int16_t* C, size_t n) {
     size_t new_size = n / 2;
     size_t size = new_size * new_size;
 
-    // FIXME: You can optimize calloc / free operations
+    int16_t* workspace = (int16_t*)calloc(21 * size, sizeof(int16_t));
+    
+    int16_t* A11 = workspace + 0 * size;
+    int16_t* A12 = workspace + 1 * size;
+    int16_t* A21 = workspace + 2 * size;
+    int16_t* A22 = workspace + 3 * size;
 
-    int16_t* A11 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* A12 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* A21 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* A22 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* B11 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* B12 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* B21 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* B22 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* C11 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* C12 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* C21 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* C22 = (int16_t*)calloc(size, sizeof(int16_t));
+    int16_t* B11 = workspace + 4 * size;
+    int16_t* B12 = workspace + 5 * size;
+    int16_t* B21 = workspace + 6 * size;
+    int16_t* B22 = workspace + 7 * size;
 
-    int16_t* M1 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* M2 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* M3 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* M4 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* M5 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* M6 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* M7 = (int16_t*)calloc(size, sizeof(int16_t));
+    int16_t* C11 = workspace + 8 * size;
+    int16_t* C12 = workspace + 9 * size;
+    int16_t* C21 = workspace + 10 * size;
+    int16_t* C22 = workspace + 11 * size;
 
-    int16_t* temp1 = (int16_t*)calloc(size, sizeof(int16_t));
-    int16_t* temp2 = (int16_t*)calloc(size, sizeof(int16_t));
+    int16_t* M1 = workspace + 12 * size;
+    int16_t* M2 = workspace + 13 * size;
+    int16_t* M3 = workspace + 14 * size;
+    int16_t* M4 = workspace + 15 * size;
+    int16_t* M5 = workspace + 16 * size;
+    int16_t* M6 = workspace + 17 * size;
+    int16_t* M7 = workspace + 18 * size;
+
+    int16_t* temp1 = workspace + 19 * size;
+    int16_t* temp2 = workspace + 20 * size;
 
     for (size_t i = 0; i < new_size; i++) {
         for (size_t j = 0; j < new_size; j++) {
@@ -129,32 +141,32 @@ void mat_mul_strassen(int16_t* A, int16_t* B, int16_t* C, size_t n) {
     mat_add(A21, A22, temp1, new_size);
     mat_mul_strassen(temp1, B11, M2, new_size);
 
-    mat_substract(B12, B22, temp2, new_size);
+    mat_subtract(B12, B22, temp2, new_size);
     mat_mul_strassen(A11, temp2, M3, new_size);
 
-    mat_substract(B21, B11, temp2, new_size);
+    mat_subtract(B21, B11, temp2, new_size);
     mat_mul_strassen(A22, temp2, M4, new_size);
 
     mat_add(A11, A12, temp1, new_size);
     mat_mul_strassen(temp1, B22, M5, new_size);
 
-    mat_substract(A21, A11, temp1, new_size);
+    mat_subtract(A21, A11, temp1, new_size);
     mat_add(B11, B12, temp2, new_size);
     mat_mul_strassen(temp1, temp2, M6, new_size);
 
-    mat_substract(A12, A22, temp1, new_size);
+    mat_subtract(A12, A22, temp1, new_size);
     mat_add(B21, B22, temp2, new_size);
     mat_mul_strassen(temp1, temp2, M7, new_size);
 
     mat_add(M1, M4, temp1, new_size);
-    mat_substract(temp1, M5, temp2, new_size);
+    mat_subtract(temp1, M5, temp2, new_size);
     mat_add(temp2, M7, C11, new_size);
 
     mat_add(M3, M5, C12, new_size);
     mat_add(M2, M4, C21, new_size);
 
     mat_add(M1, M3, temp1, new_size);
-    mat_substract(temp1, M2, temp2, new_size);
+    mat_subtract(temp1, M2, temp2, new_size);
     mat_add(temp2, M6, C22, new_size);
 
     for (size_t i = 0; i < new_size; i++) {
@@ -168,27 +180,23 @@ void mat_mul_strassen(int16_t* A, int16_t* B, int16_t* C, size_t n) {
     }
 
     // Free allocated memory
-    free(A11); free(A12); free(A21); free(A22);
-    free(B11); free(B12); free(B21); free(B22);
-    free(C11); free(C12); free(C21); free(C22);
-    free(M1); free(M2); free(M3); free(M4);
-    free(M5); free(M6); free(M7);
-    free(temp1); free(temp2);
+    free(workspace);
 }
 
 // Check if the number is a power of two
-int is_is_power_of_two(size_t n) {
+int is_power_of_two(size_t n) {
     return (n != 0) && ((n & (n - 1)) == 0);
 }
-
-// TODO: Check correctness of the padding for non-square matrices im not sure if it's correct
 
 /**
  * Handle non-square matrices by padding them to the nearest power of two
  * and then performing matrix multiplication using Strassen's algorithm.
  */
 void mat_handle_non_square(int16_t* A, int16_t* B, int16_t* C, size_t rowsA, size_t colsA, size_t colsB) {
-    size_t max_dim = rowsA > colsA ? rowsA : colsA;
+    size_t max_dim = rowsA;
+    if (colsA > max_dim) max_dim = colsA;
+    if (colsB > max_dim) max_dim = colsB;
+
     size_t n = 1;
     while (n < max_dim) {
         n <<= 1;
@@ -264,7 +272,7 @@ int main() {
     mat_init_rand(B, (size_t)colsA, (size_t)colsB);
 
     clock_t start = clock();
-    rowsA == colsA && colsA == colsB && is_is_power_of_two((size_t)rowsA) ?
+    rowsA == colsA && colsA == colsB && is_power_of_two((size_t)rowsA) ?
         mat_mul_strassen(A, B, C, (size_t)rowsA) :
         mat_handle_non_square(A, B, C, (size_t)rowsA, (size_t)colsA, (size_t)colsB);
     clock_t end = clock();
